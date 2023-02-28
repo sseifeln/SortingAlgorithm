@@ -5,52 +5,45 @@
 #include <algorithm>
 #include <iomanip>
 #include <bitset>
+#include "FileIO.cc"
 
-InputHandler::InputHandler(const std::string& pFileId, size_t pReadLimit): fReadTime{0}, fProcessTime{0}, fReadCounter{0}, fProcessedCounter{0}, fFileIsOpened{false}, fReadIsDone{false}, fConsumed{false}, fIsReady{false}
+InputHandler::InputHandler(const std::string& pInputFileName,  const std::string& pOutputFileName, size_t pReadLimit): fReadTime{0}, fProcessTime{0}, fReadCounter{0}, fProcessedCounter{0}, fFileIsOpened{false}, fReadIsDone{false}, fConsumed{false}, fIsReady{false}
 , fProcessing{false}
 {
-    fFileId = pFileId; 
+    // configure maximum number of lines to read from the file 
     fReadLimit = pReadLimit;
-    InputHandler::openFile();
-}
-bool InputHandler::isFileOpen()
-{
-    std::lock_guard<std::mutex> cLock(fMemberMutex);
-    return fFileIsOpened;
+    // configure input stream 
+    fIOHandlerInput = new FileIO();
+    fInputFileName=pInputFileName;
+    fIOHandlerInput->SetOption('r');
+    fIOHandlerInput->SetFilename(fInputFileName); 
+    fIOHandlerInput->Open(fFileStream); 
+    // configure output stream 
+    fIOHandlerOutput = new FileIO();
+    fOutputFileName=pOutputFileName;
+    fIOHandlerOutput->SetOption('w');
+    fIOHandlerOutput->SetFilename(fOutputFileName); 
+    fIOHandlerOutput->Open(fOutputStream); 
+    if(fIOHandlerOutput->IsOpen(fOutputStream)) fOutputStream << "Time\tEnergy\n";
 }
 InputHandler::~InputHandler()
 {
     while(fQueue.empty() == false) std::this_thread::sleep_for(std::chrono::microseconds(DESTROYSLEEP));
-    InputHandler::closeFile();
+    fIOHandlerInput->Close(fFileStream); 
+    fIOHandlerOutput->Close(fOutputStream); 
+
+    delete fIOHandlerInput;
+    fIOHandlerInput = nullptr;
+    
+    delete fIOHandlerOutput;
+    fIOHandlerOutput = nullptr;
 }
-bool InputHandler::openFile()
-{
-    if(InputHandler::isFileOpen() == false)
-    {
-        std::lock_guard<std::mutex> cLock(fMemberMutex);
-        // std::cout << "Opening file : " <<  fFileId.c_str() << "\n";
-        fFileStream.open(fFileId.c_str(), std::fstream::in | std::fstream::binary);
-        fFileIsOpened = fFileStream.is_open();
-        if(fFileIsOpened){
-            std::cout << fFileId.c_str() << " opened...\n";
-            fFileStream.clear();
-            fFileStream.seekg(0, std::ios::beg);
-        }
-    }
-    return fFileIsOpened;
-}
-void InputHandler::closeFile()
-{
-    if(fFileIsOpened == true)
-    {
-        fFileIsOpened = false;
-        fFileStream.close();
-    }
-}
+// reading event data from file 
+// and sorting them into a queue
 void InputHandler::readFile()
 {
     fReadIsDone=false;
-    if(InputHandler::isFileOpen() == false){ 
+    if(fIOHandlerInput->IsOpen(fFileStream) == false){ 
         fReadIsDone = true;
         return;
     }
@@ -70,7 +63,8 @@ void InputHandler::readFile()
             Event cEvent; 
             cEvent.fTimestamp = cWord&0xFFFFFFFF;
             cEvent.fEnergy = (cWord >> 32 ) & 0xFFFFFFFF; 
-            cEvent.fCounter = 0; 
+            cEvent.fCycle = 0;
+            // std::cout << cEvent.fTimestamp << "\n";
             cLocalQueue.push(cEvent);
             fReadCounter++;
         }
@@ -109,6 +103,7 @@ void InputHandler::readFile()
     fReadTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - fReadTime;
     std::cout << "Done reading.." << fReadCounter << " events from input file\n";
 }
+// processing data in sorted event queue 
 void InputHandler::process()
 {
     fProcessing=true;
@@ -139,10 +134,6 @@ void InputHandler::process()
 void InputHandler::ProcessData()
 {
     fThProcess = std::async(std::launch::async, &InputHandler::process, this);
-}
-void InputHandler::SetOutputStream(const std::string& pFileId)
-{
-    fOutputStream.open(pFileId.c_str(), std::fstream::out);
 }
 uint32_t InputHandler::print(size_t pSize, std::ostream& pOs)
 {
@@ -182,7 +173,7 @@ void InputHandler::Run()
     this->Wait();
     cStartTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - cStartTime;
     fOutputStream.close();
-    
+
     std::cout << "Total running time " << cStartTime*1e-6 << " seconds\n";
     std::cout << "It took " << fReadTime*1e-6 << " s to read " << fReadCounter*1e-6 
         << " MEvents [" << std::scientific << std::setprecision(1) << (float)fReadCounter/fReadTime << " MEvents/s]\n";

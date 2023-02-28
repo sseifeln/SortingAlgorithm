@@ -14,32 +14,34 @@
 #include <mutex>
 #include <queue>
 #include <future>
-#include <condition_variable>
 #include "Utilities.h"
-#include "FileIO.h"
 
 // #############
 // # CONSTANTS #
 // #############
 #define DESTROYSLEEP 100 // [microseconds]
-#define WAITSLEEP 1 // [microseconds]
 using namespace std;
 
+// forward declare FileIO object 
+class FileIO;
 class InputHandler 
 {
     public :
-        InputHandler(const std::string& pFileId,size_t pReadLimit=0);
+        InputHandler(const std::string& pInputFileName, const std::string& pOutputFileName, size_t pReadLimit=0);
         ~InputHandler();
 
         // setter and getter functions for class members
-        void SetOutputStream(const std::string& pFileId); 
-        void SetFileName(const std::string& pFileId){ fFileId =pFileId; }
+        // set input and output files 
+        void SetInputFileName(const std::string& pFileId){ fInputFileName =pFileId; }
+        void SetOutputFileName(const std::string& pFileId){ fOutputFileName =pFileId; }
+        // get time to read(and sort) events
         uint32_t GetReadTime(){ return fReadTime;}
         uint32_t GetNEventsRead(){return fReadCounter;}
+        // get time to process events
         uint32_t GerProcessingTime(){ return fProcessTime;}
         uint32_t GetNEventsProcessed(){return fProcessedCounter;}
 
-        // file access 
+        // 
         void ReadFile(); 
         void ProcessData();
 
@@ -48,18 +50,22 @@ class InputHandler
         std::pair<bool,uint64_t> GetOutput();
         void Run(); 
 
+    // member functions to handle file IO 
+    private : 
+        // FileIO object to handle files 
+        FileIO* fIOHandlerInput;
+        FileIO* fIOHandlerOutput;
+         
+        // file streams 
+        std::fstream fFileStream;
+        std::fstream fOutputStream; 
+
     // member functions for internal use 
     // all safe-guarded using synchronization mutex 
     private : 
-        // check if file (fFileId) is open 
-        bool isFileOpen(); 
-        // open file (fFileId)
-        bool openFile();
-        // close file (fFileId)
-        void closeFile();
-        // read from file 
+        // read event data from file and sort 
         void readFile();
-        // get head of the queue 
+        // send data to the output 
         void process(); 
         // stream data 
         uint32_t print(size_t pSize, std::ostream& pOs);
@@ -81,11 +87,9 @@ class InputHandler
         // number of 64 bit wordsread from the file 
         size_t fReadCounter;
         size_t fProcessedCounter; 
-        // file input stream
-        std::fstream fFileStream;
-        std::ofstream fOutputStream; 
         // file name 
-        std::string fFileId;
+        std::string fInputFileName;
+        std::string fOutputFileName;
         // is file open 
         bool fFileIsOpened; 
 
@@ -98,7 +102,6 @@ class InputHandler
 
         // synchronization mutex 
         mutable std::mutex  fMemberMutex;
-        std::condition_variable fMyConditionVar;
         bool                fReadIsDone;
         bool                fConsumed; 
         bool                fIsReady;
