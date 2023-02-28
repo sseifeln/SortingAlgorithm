@@ -7,29 +7,39 @@
 #include <iomanip>
 #include <numeric>
 #include <iostream>
-#include <getopt.h>
+#include "cxxopts.hpp"
 
 int main(int argc, char* argv[])
 {
-    // std::copy(argv, argv + argc, std::ostream_iterator<char *>(std::cout, "\n"));
+    int cNlines = 0;
+    std::string  cInputFile="data/test_data.dat";
+    // options to command line parser 
+    cxxopts::Options cOptions("Datasorter", "Produce time-ordered list of events from a medical imaging device.");
+    cOptions.add_options()
+        ("d,debug", "Enable debugging") // a bool parameter
+        ("n,number_of_lines", "Number of lines to parse", cxxopts::value<int>()->default_value("0"))
+        ("f,file", "Input file name", cxxopts::value<std::string>()->default_value(cInputFile))
+        ("h,help", "Print usage")
+    ;
 
-    // option cCLOptions[] = {
-    //     {"number_of_lines_to_parse", optional_argument, NULL, 'n'}};
-    
-    std::cout << "Datasorter bare-bones executable\n";
-    int  cOption=1;
-    while ((cOption = getopt (argc, argv, "abc:")) != -1)
+    // parse result
+    auto cParsedResults = cOptions.parse(argc, argv);
+    if (cParsedResults.count("help"))
     {
-        // const int cCLOption = getopt_long(argc, argv, "nE::", cCLOptions, 0);
-        // if (cCLOption == -1) {
-        //     break;
-        // }
-
-        switch (cOption) {
-            case 'n':
-               auto cValue = optarg;
-               std::cout << "Will only sort through first " << cValue << " lines in the file\n";
-               break;
-        }
+        std::cout << cOptions.help() << std::endl;
+        exit(0);
     }
+    
+    if ( cParsedResults.count("number_of_lines") ) 
+    {
+        cNlines = cParsedResults["number_of_lines"].as<int>();
+    }
+    if ( cParsedResults.count("file") ) 
+    {
+        cInputFile = cParsedResults["file"].as<std::string>();
+    }
+
+    if( cNlines == 0 ) std::cout << "Parse complete dataset in " << cInputFile << "\n";
+    else std::cout << "Parsing " << cNlines << " line(s) from " << cInputFile << "\n";
+
 }

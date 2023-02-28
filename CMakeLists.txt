@@ -18,6 +18,12 @@ set(BoldWhite   "${Esc}[1;37m")
 cmake_minimum_required(VERSION 3.10)
 project(FileSorter)
 
+# Set the output directory
+if ( ${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR} )
+MESSAGE( STATUS "${BoldRed}" )
+MESSAGE( FATAL_ERROR "${Reset}In-source builds not allowed. Please make a new directory (called a build directory) and run CMake from there. You may need to remove CMakeCache.txt." )
+endif()
+
 # ---------- Setup output Directories -------------------------
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY
 ${PROJECT_SOURCE_DIR}/lib
@@ -37,7 +43,21 @@ CACHE PATH
 "Single Output Directory for all static libraries."
 )
 
+# ---------- Setup module path -------------------------
+# Set the cmake module path
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+
+# Check for external dependences
+message("--")
+message("--     ${BoldCyan}#### Checking for external Dependencies ${CMAKE_MODULE_PATH} ####${Reset}")
+
+# CXXOPT
+find_package(CXXOPT)
+if(${CXXOPT_FOUND})
+    message(STATUS "--      ${BoldGreen}  Enabling CXXOPT component ${CXXOPTS_INCLUDE_DIR}")
+endif(${CXXOPT_FOUND})
+
 # ---------- Compile sub-directories -------------------------
 add_subdirectory(src)
-
+add_subdirectory(include)
 
