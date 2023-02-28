@@ -6,8 +6,9 @@
 #include <bitset>
 #include <iomanip>
 #include <numeric>
+#include <iostream>
 
 int main(int argc, char* argv[])
 {
-    
+    std::cout << "Datasorter bare-bones executable\n";
 }
