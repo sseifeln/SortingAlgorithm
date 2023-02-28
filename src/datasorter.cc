@@ -8,6 +8,7 @@
 #include <numeric>
 #include <iostream>
 #include "cxxopts.hpp"
+#include "InputHandler.h"
 
 int main(int argc, char* argv[])
 {
@@ -41,5 +42,7 @@ int main(int argc, char* argv[])
 
     if( cNlines == 0 ) std::cout << "Parse complete dataset in " << cInputFile << "\n";
     else std::cout << "Parsing " << cNlines << " line(s) from " << cInputFile << "\n";
+
+    // now have to decide how to structure the rest of this 
 
 }
