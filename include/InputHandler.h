@@ -13,6 +13,8 @@
 #include <fstream>
 #include <mutex>
 #include <queue>
+#include <future>
+#include <condition_variable>
 
 // #############
 // # CONSTANTS #
@@ -26,7 +28,7 @@ using EventQueue = std::queue<uint64_t> ;
 class InputHandler 
 {
     public :
-        InputHandler(const std::string& pFileId);
+        InputHandler(const std::string& pFileId,size_t pReadLimit=0);
         ~InputHandler();
 
         // setter and getter functions for class members
@@ -34,8 +36,12 @@ class InputHandler
         uint32_t GetReadTime(){ return fReadTime;}
         uint32_t GetNEventsRead(){return fReadCounter;}
 
-        // read file 
+        // file access 
         void ReadFile(); 
+        void ProcessData();
+
+        // wait 
+        void Wait(); 
 
     // member functions for internal use 
     // all safe-guarded using synchronization mutex 
@@ -48,8 +54,13 @@ class InputHandler
         void closeFile();
         // read from file 
         void readFile();
-    // member variables 
+        // get head of the queue 
+        void process(); 
+    
+    // member variables  - book keeping 
     private :
+        //
+        size_t fReadLimit{0};
         // queue to hold 64 bit words from file 
         EventQueue fQueue;
         // time to read file
@@ -62,7 +73,19 @@ class InputHandler
         std::string fFileId;
         // is file open 
         bool fFileIsOpened; 
+
+    // memeber variables  - threading control
+    private :
+        //  futures
+        std::future<void> fThRead; 
+        std::future<void> fThProcess;
+
         // synchronization mutex 
         mutable std::mutex  fMemberMutex;
+        std::condition_variable fMyConditionVar;
+        bool                fReadIsDone;
+        bool                fConsumed; 
+        bool                fIsReady;
     
+        
 };
