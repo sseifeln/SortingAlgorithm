@@ -14,12 +14,14 @@ int main(int argc, char* argv[])
 {
     int cNlines = 0;
     std::string  cInputFile="data/test_data.dat";
+    std::string  cOutputFile="data/solution.dat";
     // options to command line parser 
     cxxopts::Options cOptions("Datasorter", "Produce time-ordered list of events from a medical imaging device.");
     cOptions.add_options()
         ("d,debug", "Enable debugging") // a bool parameter
         ("n,number_of_lines", "Number of lines to parse", cxxopts::value<int>()->default_value("0"))
         ("f,file", "Input file name", cxxopts::value<std::string>()->default_value(cInputFile))
+        ("o,output_file", "Output file name", cxxopts::value<std::string>()->default_value(cOutputFile))
         ("h,help", "Print usage")
     ;
 
@@ -45,12 +47,17 @@ int main(int argc, char* argv[])
 
     // now have to decide how to structure the rest of this 
     InputHandler cMyInputHandler(cInputFile,cNlines);
+    cMyInputHandler.SetOutputStream(cOutputFile);
     cMyInputHandler.Run();
 
-    auto cReadTime = cMyInputHandler.GetReadTime();
-    auto cReadCount = cMyInputHandler.GetNEventsRead();
-
-    std::cout << "It took " << cReadTime*1e-6 << " s to read " << cReadCount*1e-6 
-        << " MEvents [" << std::scientific << std::setprecision(1) << (float)cReadCount/cReadTime << " MEvents/s]\n";
+    // auto cReadTime = cMyInputHandler.GetReadTime();
+    // auto cReadCount = cMyInputHandler.GetNEventsRead();
+    // std::cout << "It took " << cReadTime*1e-6 << " s to read " << cReadCount*1e-6 
+    //     << " MEvents [" << std::scientific << std::setprecision(1) << (float)cReadCount/cReadTime << " MEvents/s]\n";
+    // //
+    // auto cReadTime = cMyInputHandler.GetReadTime();
+    // auto cReadCount = cMyInputHandler.GetNEventsRead();
+    // std::cout << "It took " << cReadTime*1e-6 << " s to read " << cReadCount*1e-6 
+    //     << " MEvents [" << std::scientific << std::setprecision(1) << (float)cReadCount/cReadTime << " MEvents/s]\n";
 
 }

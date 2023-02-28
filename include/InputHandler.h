@@ -16,12 +16,13 @@
 #include <future>
 #include <condition_variable>
 #include "Utilities.h"
+#include "FileIO.h"
 
 // #############
 // # CONSTANTS #
 // #############
 #define DESTROYSLEEP 100 // [microseconds]
-#define WAITSLEEP 10 // [microseconds]
+#define WAITSLEEP 1 // [microseconds]
 using namespace std;
 
 class InputHandler 
@@ -31,9 +32,12 @@ class InputHandler
         ~InputHandler();
 
         // setter and getter functions for class members
+        void SetOutputStream(const std::string& pFileId); 
         void SetFileName(const std::string& pFileId){ fFileId =pFileId; }
         uint32_t GetReadTime(){ return fReadTime;}
         uint32_t GetNEventsRead(){return fReadCounter;}
+        uint32_t GerProcessingTime(){ return fProcessTime;}
+        uint32_t GetNEventsProcessed(){return fProcessedCounter;}
 
         // file access 
         void ReadFile(); 
@@ -57,22 +61,29 @@ class InputHandler
         void readFile();
         // get head of the queue 
         void process(); 
+        // stream data 
+        uint32_t print(size_t pSize, std::ostream& pOs);
+
+    // queue handlings 
+    private : 
+        // queue to hold event data from the file 
+        TSQueue<Event>  fQueue;
     
     // member variables  - book keeping 
     private :
-        //
-        size_t fSearchWindow{500};
-        //
+        size_t fSearchWindow{512};
         size_t fReadLimit{0};
-        // queue to hold 64 bit words from file 
-        EventQueue fQueue; 
-
+        
         // time to read file
         uint32_t fReadTime;
+        // time to process the file
+        uint32_t fProcessTime;
         // number of 64 bit wordsread from the file 
         size_t fReadCounter;
+        size_t fProcessedCounter; 
         // file input stream
         std::fstream fFileStream;
+        std::ofstream fOutputStream; 
         // file name 
         std::string fFileId;
         // is file open 
@@ -83,9 +94,10 @@ class InputHandler
         //  futures
         std::future<void> fThRead; 
         std::future<void> fThProcess;
+        std::future<void> fThStream;
 
         // synchronization mutex 
-        std::mutex  fMemberMutex;
+        mutable std::mutex  fMemberMutex;
         std::condition_variable fMyConditionVar;
         bool                fReadIsDone;
         bool                fConsumed; 
