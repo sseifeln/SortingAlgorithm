@@ -7,8 +7,7 @@
 #include <bitset>
 #include "FileIO.cc"
 
-InputHandler::InputHandler(const std::string& pInputFileName,  const std::string& pOutputFileName, size_t pReadLimit): fReadTime{0}, fProcessTime{0}, fReadCounter{0}, fProcessedCounter{0}, fFileIsOpened{false}, fReadIsDone{false}, fConsumed{false}, fIsReady{false}
-, fProcessing{false}
+InputHandler::InputHandler(const std::string& pInputFileName,  const std::string& pOutputFileName, size_t pReadLimit): fReadTime{0}, fProcessTime{0}, fReadCounter{0}, fProcessedCounter{0}, fFileIsOpened{false}, fReadIsDone{false}
 {
     // configure maximum number of lines to read from the file 
     fReadLimit = pReadLimit;
@@ -57,7 +56,6 @@ void InputHandler::readFile()
         // first 64 bits --> header --> tells me how many events I have 
         fFileStream.read((char*)&cWord, sizeof(uint64_t));
         auto cFrameSize=cWord&0xFFFF;
-        fIsReady=false;
         for(size_t cNibble=0; cNibble < cFrameSize; cNibble++){ 
             fFileStream.read((char*)&cWord, sizeof(uint64_t)); 
             Event cEvent; 

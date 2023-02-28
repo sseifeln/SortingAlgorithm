@@ -98,15 +98,11 @@ class InputHandler
         //  futures
         std::future<void> fThRead; 
         std::future<void> fThProcess;
-        std::future<void> fThStream;
 
         // synchronization mutex 
         mutable std::mutex  fMemberMutex;
         bool                fReadIsDone;
-        bool                fConsumed; 
-        bool                fIsReady;
         bool                fProcessing;
-        bool                fRunning;
     
         
 };
