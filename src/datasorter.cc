@@ -45,4 +45,5 @@ int main(int argc, char* argv[])
 
     // now have to decide how to structure the rest of this 
     InputHandler cMyInputHandler(cInputFile);
+    cMyInputHandler.ReadFile();
 }

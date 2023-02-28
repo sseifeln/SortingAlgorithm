@@ -33,8 +33,11 @@ class InputHandler
         void SetFileName(const std::string& pFileId){ fFileId =pFileId; }
         uint32_t GetReadTime(){ return fReadTime;}
         uint32_t GetNEventsRead(){return fReadCounter;}
-    
-    // memeber functions for internal use 
+
+        // read file 
+        void ReadFile(); 
+
+    // member functions for internal use 
     // all safe-guarded using synchronization mutex 
     private : 
         // check if file (fFileId) is open 
@@ -43,7 +46,8 @@ class InputHandler
         bool openFile();
         // close file (fFileId)
         void closeFile();
-    
+        // read from file 
+        void readFile();
     // member variables 
     private :
         // queue to hold 64 bit words from file 
