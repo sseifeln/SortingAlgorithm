@@ -46,4 +46,11 @@ int main(int argc, char* argv[])
     // now have to decide how to structure the rest of this 
     InputHandler cMyInputHandler(cInputFile);
     cMyInputHandler.ReadFile();
+
+    auto cReadTime = cMyInputHandler.GetReadTime();
+    auto cReadCount = cMyInputHandler.GetNEventsRead();
+
+    std::cout << "It took " << cReadTime*1e-6 << " s to read " << cReadCount*1e-6 
+        << " MEvents [" << std::scientific << std::setprecision(1) << (float)cReadCount/cReadTime << " MEvents/s]\n";
+
 }
