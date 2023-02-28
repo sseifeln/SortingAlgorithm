@@ -2,8 +2,11 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <algorithm>
+// #include <numeric>
 
 InputHandler::InputHandler(const std::string& pFileId, size_t pReadLimit): fReadTime{0}, fReadCounter{0}, fFileIsOpened{false}, fReadIsDone{false}, fConsumed{false}, fIsReady{false}
+, fProcessing{false}
 {
     fFileId = pFileId; 
     fReadLimit = pReadLimit;
@@ -66,22 +69,42 @@ void InputHandler::readFile()
         // first 64 bits --> header --> tells me how many events I have 
         fFileStream.read((char*)&cWord, sizeof(uint64_t));
         auto cFrameSize=cWord&0xFFFF;
-        // fFrameCounter += cFrameSize;
         fIsReady=false;
         fMyConditionVar.notify_one(); 
         std::unique_lock<std::mutex> cLock(fMemberMutex);
         for(size_t cNibble=0; cNibble < cFrameSize; cNibble++){ 
             fFileStream.read((char*)&cWord, sizeof(uint64_t)); 
-            fQueue.push(cWord);
+            Event cEvent; 
+            cEvent.fTimestamp = cWord&0xFFFFFFFF;
+            cEvent.fEnergy = (cWord >> 32 ) & 0xFFFFFFFF; 
+            cEvent.fCounter = 0; 
+            fQueue.push(cEvent);
             fReadCounter++;
         }
-        fIsReady=true;
-        while (!fConsumed){ 
-            cLock.unlock();
-            fMyConditionVar.notify_one(); 
-            cLock.lock();
+        
+        cStopCondition = ( fReadCounter >= fReadLimit && fReadLimit!=0 ) || fFileStream.eof(); 
+        // every time I've accumulated 500 events in the queue 
+        // do something with them 
+        if( fQueue.size() > fSearchWindow || cStopCondition  ) 
+        {
+            // sort entire queue 
+            auto cSize=fQueue.size();
+            std::vector<Event> cFrame(cSize);
+            for(size_t cIndx=0;cIndx<cFrame.size();cIndx++) cFrame[cIndx]=fQueue.pop();
+            std::sort( cFrame.begin(), cFrame.end() );
+            for(const auto& cEvent : cFrame){ 
+                fQueue.push(cEvent);
+                // std::cout << cEvent.fTimestamp << "\n";
+            }
+
+            fIsReady=true;
+            while (!fConsumed){ 
+                cLock.unlock();
+                fMyConditionVar.notify_one(); 
+                cLock.lock();
+            }
         }
-        cStopCondition = (fReadLimit == 0) ? fFileStream.eof() : (fFileStream.eof() || fReadCounter >= fReadLimit);
+        std::this_thread::sleep_for(std::chrono::microseconds(10));
     }
     fReadIsDone=true;
     fReadTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - fReadTime;
@@ -89,6 +112,9 @@ void InputHandler::readFile()
 }
 void InputHandler::process()
 {
+    size_t cNCalls=0;
+    fProcessing=true;
+    uint32_t cLastTimer=0;
     while(fReadIsDone==0)
     {
         size_t  cSize=0; 
@@ -101,20 +127,34 @@ void InputHandler::process()
             // std::cout << "...Finished waiting; isReady == " << fIsReady << '\n';
             fConsumed = true;
         }
-        
-        std::vector<uint64_t> cMyData(cSize);
-        for(size_t cIndx = 0 ; cIndx < cSize; cIndx++){ 
-            cMyData[cIndx]=fQueue.front();
-            fQueue.pop();
+        if(cSize/2 == 0 ) continue;
+
+        std::vector<Event> cMyData(cSize/2);
+        for(size_t cIndx = 0 ; cIndx < cSize/2; cIndx++){ 
+            cMyData[cIndx]=fQueue.pop();
         }
+        std::sort( cMyData.begin(), cMyData.end() );
+        std::vector<uint64_t> cWords(cMyData.size());
+        for(size_t cIndx = 0 ; cIndx < cMyData.size(); cIndx++){ 
+            uint32_t cTimeStamp = cMyData[cIndx].fTimestamp;
+            double cTime = (double)cTimeStamp;
+            uint64_t cWrd = ((uint64_t)(cMyData[cIndx].fEnergy) << 32) | cMyData[cIndx].fTimestamp;
+            // if( cWrd == 0x00 ) std::cout << "!!!! Event " << cIndx << " has 0 energy + 0 timestamp ..\n";
+            cWords[cIndx]=cWrd;
+            if( cTime - (double)cLastTimer < 0 ) std::cout << "!!! --ve \t" << cTimeStamp << "\t" << cLastTimer << "\n";
+            // else std::cout << "+ve \t" << cTime  << "\t" << cLastTimer << "\n";
+            cLastTimer=cMyData[cIndx].fTimestamp;
+        }
+
+        if(cNCalls%1000 == 0 )  std::cout << "Holding " << cMyData.size() << " entries\n";
+        cNCalls++;
     }
     auto cSize = fQueue.size(); 
     for(size_t cIndx = 0 ; cIndx < cSize; cIndx++){ 
         // cMyData[cIndx]=fQueue.front();
         fQueue.pop();
     }
-    // std::vector<uint64_t> cMyData; 
-    // return cMyData;
+    fProcessing=false;
 }
 void InputHandler::ProcessData()
 {
@@ -127,6 +167,16 @@ void InputHandler::ReadFile()
 }
 void InputHandler::Wait()
 {
-    fThProcess.get();//promise 
     fThRead.get();//promise 
+    fThProcess.get();//promise 
+    std::cout << "Promises received\n";
+}
+void InputHandler::Run()
+{
+    // fFinished=false;
+    // ReadFile();
+    // ProcessData();
+    // Wait();
+    // while(!fOutput.empty()){}
+    // fFinished=true;
 }

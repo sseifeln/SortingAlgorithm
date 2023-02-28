@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
     cMyInputHandler.ReadFile();
     cMyInputHandler.ProcessData();
     cMyInputHandler.Wait();
-    
+
     auto cReadTime = cMyInputHandler.GetReadTime();
     auto cReadCount = cMyInputHandler.GetNEventsRead();
 

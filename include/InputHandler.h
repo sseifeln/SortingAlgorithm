@@ -15,15 +15,13 @@
 #include <queue>
 #include <future>
 #include <condition_variable>
+#include "Utilities.h"
 
 // #############
 // # CONSTANTS #
 // #############
 #define DESTROYSLEEP 100 // [microseconds]
 using namespace std;
-
-
-using EventQueue = std::queue<uint64_t> ;
 
 class InputHandler 
 {
@@ -42,6 +40,8 @@ class InputHandler
 
         // wait 
         void Wait(); 
+        std::pair<bool,uint64_t> GetOutput();
+        void Run(); 
 
     // member functions for internal use 
     // all safe-guarded using synchronization mutex 
@@ -60,9 +60,12 @@ class InputHandler
     // member variables  - book keeping 
     private :
         //
+        size_t fSearchWindow{500};
+        //
         size_t fReadLimit{0};
         // queue to hold 64 bit words from file 
-        EventQueue fQueue;
+        EventQueue fQueue; 
+
         // time to read file
         uint32_t fReadTime;
         // number of 64 bit wordsread from the file 
@@ -81,11 +84,13 @@ class InputHandler
         std::future<void> fThProcess;
 
         // synchronization mutex 
-        mutable std::mutex  fMemberMutex;
+        std::mutex  fMemberMutex;
         std::condition_variable fMyConditionVar;
         bool                fReadIsDone;
         bool                fConsumed; 
         bool                fIsReady;
+        bool                fProcessing;
+        bool                fRunning;
     
         
 };
