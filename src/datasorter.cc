@@ -7,4 +7,7 @@
 #include <iomanip>
 #include <numeric>
 
-
+int main(int argc, char* argv[])
+{
+    
+}
