@@ -44,5 +44,5 @@ int main(int argc, char* argv[])
     else std::cout << "Parsing " << cNlines << " line(s) from " << cInputFile << "\n";
 
     // now have to decide how to structure the rest of this 
-
+    InputHandler cMyInputHandler(cInputFile);
 }
