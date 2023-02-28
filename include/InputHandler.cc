@@ -29,11 +29,14 @@ bool InputHandler::openFile()
     if(InputHandler::isFileOpen() == false)
     {
         std::lock_guard<std::mutex> cLock(fMemberMutex);
-        std::cout << "Opening file : " <<  fFileId.c_str() << "\n";
+        // std::cout << "Opening file : " <<  fFileId.c_str() << "\n";
         fFileStream.open(fFileId.c_str(), std::fstream::in | std::fstream::binary);
-        fFileStream.clear();
-        fFileStream.seekg(0, std::ios::beg);
-        fFileIsOpened = true;
+        fFileIsOpened = fFileStream.is_open();
+        if(fFileIsOpened){
+            std::cout << fFileId.c_str() << " opened...\n";
+            fFileStream.clear();
+            fFileStream.seekg(0, std::ios::beg);
+        }
     }
     return fFileIsOpened;
 }
