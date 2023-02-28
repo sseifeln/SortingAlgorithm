@@ -45,9 +45,7 @@ int main(int argc, char* argv[])
 
     // now have to decide how to structure the rest of this 
     InputHandler cMyInputHandler(cInputFile,cNlines);
-    cMyInputHandler.ReadFile();
-    cMyInputHandler.ProcessData();
-    cMyInputHandler.Wait();
+    cMyInputHandler.Run();
 
     auto cReadTime = cMyInputHandler.GetReadTime();
     auto cReadCount = cMyInputHandler.GetNEventsRead();

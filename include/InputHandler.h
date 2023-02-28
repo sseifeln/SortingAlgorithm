@@ -21,6 +21,7 @@
 // # CONSTANTS #
 // #############
 #define DESTROYSLEEP 100 // [microseconds]
+#define WAITSLEEP 10 // [microseconds]
 using namespace std;
 
 class InputHandler 

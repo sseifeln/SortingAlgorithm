@@ -63,7 +63,7 @@ void InputHandler::readFile()
 
     fReadTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     bool cStopCondition = fFileStream.eof();
-    while( !cStopCondition )// && fReadCounter < 10000  )
+    while( !cStopCondition )
     {
         uint64_t cWord=0;
         // first 64 bits --> header --> tells me how many events I have 
@@ -104,7 +104,7 @@ void InputHandler::readFile()
                 cLock.lock();
             }
         }
-        std::this_thread::sleep_for(std::chrono::microseconds(10));
+        std::this_thread::sleep_for(std::chrono::microseconds(WAITSLEEP));
     }
     fReadIsDone=true;
     fReadTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - fReadTime;
@@ -173,10 +173,7 @@ void InputHandler::Wait()
 }
 void InputHandler::Run()
 {
-    // fFinished=false;
-    // ReadFile();
-    // ProcessData();
-    // Wait();
-    // while(!fOutput.empty()){}
-    // fFinished=true;
+    this->ReadFile();
+    this->ProcessData();
+    this->Wait();
 }
