@@ -144,20 +144,18 @@ uint32_t InputHandler::print(size_t pSize, std::ostream& pOs)
     fNCalls++;
     fAverageQueueHandled += (double)pSize;
 
-    std::vector<uint64_t> cWords(pSize);
     for(size_t cIndx=0; cIndx<pSize; cIndx++){ 
         auto cEvent = fQueue.pop();
         // pOs << cEvent.fTimestamp << "\t" << cEvent.fEnergy << "\n";
         uint64_t cWrd = cEvent.encode();//((uint64_t)(cEvent.fEnergy) << 32) | (uint64_t)cEvent.fTimestamp;
         if(fDebugOut) std::cout << std::bitset<64>(cWrd) << "\n";
-        cWords.push_back(cWrd);
+        pOs.write((char*)&cWrd, sizeof(uint64_t));
         uint32_t cTimeStamp = cEvent.fTimestamp;
         double cTime = (double)cTimeStamp;
         if( cTime - (double)cLastTimer < 0 ) std::cout << "!!! --ve \t" << cTimeStamp << "\t" << cLastTimer << "\t" << cIndx << "\n";
         cLastTimer=cTimeStamp;
         cNProcessed++;
     }
-    pOs.write((char*)&cWords.at(0), cWords.size() * sizeof(uint64_t));   
     return cNProcessed;
 }
 void InputHandler::ReadFile()
@@ -168,6 +166,8 @@ void InputHandler::Wait()
 {
     fThRead.get();//promise 
     fThProcess.get();//promise 
+    fIOHandlerInput->Close(fFileStream); 
+    fIOHandlerOutput->Close(fOutputStream); 
 }
 void InputHandler::Run()
 {
@@ -189,4 +189,34 @@ void InputHandler::Run()
         << " MEvents [" << std::scientific << std::setprecision(1) << (float)fReadCounter/fReadTime << " MEvents/s]\n";
     std::cout << "It took " << fProcessTime*1e-6 << " s to process " << fProcessedCounter*1e-6 
         << " MEvents [" << std::scientific << std::setprecision(1) << (float)fProcessedCounter/fProcessTime << " MEvents/s]\n";
+}
+void InputHandler::ConvertRawOutput(const std::string& pFileName)
+{
+    std::cout << "Converting .raw output to tab separated file format\n";
+    std::ofstream cFile;
+    cFile.open(pFileName, std::ios::out );
+    cFile << "Time\tEnergy\n";
+    fIOHandlerInput->SetOption('r');
+    fIOHandlerInput->SetFilename(fOutputFileName); 
+    fIOHandlerInput->Open(fFileStream); 
+    while(!fFileStream.eof())
+    {
+        std::stringstream cOutput; 
+        for(size_t cChunk=0; cChunk<256;cChunk++)
+        {
+            if( fFileStream.eof() ) break; 
+
+            uint64_t cWord=0;
+            fFileStream.read((char*)&cWord, sizeof(uint64_t));
+            if(cWord==0) continue;
+
+            if( fDebugOut ) std::cout << cChunk << ":" << std::bitset<64>(cWord) << "\n";
+            Event cEvent; 
+            cEvent.decode(cWord); 
+            cOutput << cEvent.fTimestamp << "\t" << cEvent.fEnergy << "\n";
+        }
+        cFile << cOutput.str(); 
+    }
+    fIOHandlerInput->Close(fFileStream);
+    cFile.close();     
 }

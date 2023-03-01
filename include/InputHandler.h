@@ -55,6 +55,7 @@ class InputHandler
         void Wait(); 
         std::pair<bool,uint64_t> GetOutput();
         void Run(); 
+        void ConvertRawOutput(const std::string& pInputFileName);
 
     // member functions to handle file IO 
     private : 

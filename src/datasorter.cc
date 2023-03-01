@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
         ("f,file", "Input file name", cxxopts::value<std::string>()->default_value(cInputFile))
         ("o,output_file", "Output file name", cxxopts::value<std::string>()->default_value(cOutputFile))
         ("s,sort_window", "Size of sorting window (in events)", cxxopts::value<int>()->default_value("512"))
-        ("c,convert_to_tsv", "Convert default output (raw 64 bit words) into a human readable tsv file")
+        ("c,convert_to_tsv", "Convert default output (raw 64 bit words) into a human readable tsv file", cxxopts::value<std::string>()->default_value(cInputFile))
         ("h,help", "Print usage")
     ;
 
@@ -61,7 +61,8 @@ int main(int argc, char* argv[])
     // simple file converter from raw to csv 
     if ( cParsedResults.count("convert_to_tsv") ) 
     {
-
+        auto cFileName = cParsedResults["convert_to_tsv"].as<std::string>();
+        cMyInputHandler.ConvertRawOutput(cFileName);
     }
 
 }
