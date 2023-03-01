@@ -51,7 +51,6 @@ void InputHandler::readFile()
 
     fReadTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     bool cStopCondition = fFileStream.eof();
-    std::queue<Event> cLocalQueue; 
     std::deque<uint64_t> cLclDQ;
     size_t cFrameCounter=0; 
     while( !cStopCondition )
@@ -185,6 +184,7 @@ void InputHandler::ConvertRawOutput(const std::string& pFileName)
     while(!fFileStream.eof())
     {
         std::stringstream cOutput; 
+        uint32_t cTimer=0;
         for(size_t cChunk=0; cChunk<256;cChunk++)
         {
             if( fFileStream.eof() ) break; 
@@ -193,10 +193,16 @@ void InputHandler::ConvertRawOutput(const std::string& pFileName)
             fFileStream.read((char*)&cWord, sizeof(uint64_t));
             if(cWord==0) continue;
 
-            if( fDebugOut ) std::cout << cChunk << ":" << std::bitset<64>(cWord) << "\n";
+            // if( fDebugOut ) std::cout << cChunk << ":" << std::bitset<64>(cWord) << "\n";
             Event cEvent; 
             cEvent.decode(cWord); 
             cOutput << cEvent.fTimestamp << "\t" << cEvent.fEnergy << "\n";
+            if(fDebugOut)
+            {
+                if( cTimer > cEvent.fTimestamp ) std::cout << "INVALID_SORT " << std::bitset<64>(cWord) << "\n";
+                else std::cout << "VALID_SORT " << std::bitset<64>(cWord) << "\n";
+            }
+            cTimer = cEvent.fTimestamp; 
         }
         cFile << cOutput.str(); 
     }
