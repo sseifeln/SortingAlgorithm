@@ -80,7 +80,7 @@ class InputHandler
     // queue handlings 
     private : 
         // queue to hold event data from the file 
-        TSQueue<Event>  fQueue;
+        TSQueue<uint64_t>  fQueue;
 
     // member variables  - book keeping 
     private :

@@ -1,4 +1,5 @@
 #include "FileIO.h"
+#include <iostream>
 
 FileIO::FileIO() : fOption('r'), fFileIsOpened(false)
 {

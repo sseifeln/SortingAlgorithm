@@ -36,9 +36,9 @@ int main(int argc, char* argv[])
         exit(0);
     }
     
-    if ( cParsedResults.count("number_of_lines") ) 
+    if ( cParsedResults.count("number_of_frames") ) 
     {
-        cNlines = cParsedResults["number_of_lines"].as<int>();
+        cNlines = cParsedResults["number_of_frames"].as<int>();
     }
     if ( cParsedResults.count("file") ) 
     {

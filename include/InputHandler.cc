@@ -52,6 +52,7 @@ void InputHandler::readFile()
     fReadTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     bool cStopCondition = fFileStream.eof();
     std::queue<Event> cLocalQueue; 
+    std::deque<uint64_t> cLclDQ;
     size_t cFrameCounter=0; 
     while( !cStopCondition )
     {
@@ -59,49 +60,38 @@ void InputHandler::readFile()
         // first 64 bits --> header --> tells me how many events I have 
         fFileStream.read((char*)&cWord, sizeof(uint64_t));
         auto cFrameSize=cWord&0xFFFF;
-        for(size_t cNibble=0; cNibble < cFrameSize; cNibble++){ 
-            fFileStream.read((char*)&cWord, sizeof(uint64_t)); 
-            Event cEvent;
-            cEvent.decode(cWord);
-            // cEvent.fTimestamp = cWord&0xFFFFFFFF;
-            // cEvent.fEnergy = (cWord >> 32 ) & 0xFFFFFFFF; 
-            cEvent.fCycle = 0;
-            // std::cout << cEvent.fTimestamp << "\n";
-            cLocalQueue.push(cEvent);
-            fReadCounter++;
-        }
+        // push events into local dq
+        std::vector<uint64_t> cEventData(cFrameSize,0);
+        fFileStream.read((char*)&cEventData[0], cFrameSize*sizeof(uint64_t));
+        cLclDQ.insert( cLclDQ.end(), cEventData.begin(), cEventData.end());
+        fReadCounter+=cFrameSize;
         cFrameCounter++;
 
-        cStopCondition = ( fReadCounter >= cFrameCounter && fReadLimit!=0 ) || fFileStream.eof(); 
+        cStopCondition = ( cFrameCounter >= fReadLimit && fReadLimit!=0 ) || fFileStream.eof(); 
         // every time I've accumulated the corect number of events in the local queue.. 
         // sort and push the first half into the processing queue
-        if( cLocalQueue.size() >= fSortWindow )
+        if( cLclDQ.size() >= fSortWindow )
         {
-            // std::cout << "Accumulated enough events in my local queue..\t" << cLocalQueue.size() << "\n";    
-            std::vector<Event> cFrame(fSortWindow);
-            for(size_t cIndx=0;cIndx<fSortWindow;cIndx++){ 
-                cFrame[cIndx]=cLocalQueue.front();
-                cLocalQueue.pop();
-            }
-            std::sort( cFrame.begin(), cFrame.end() );
-            for(size_t cIndx=0; cIndx<fSortWindow;cIndx++)
+            // sort based on the time-stamp
+            sort( cLclDQ.begin( ), cLclDQ.end( ), [ ]( const uint64_t& lhs, const uint64_t& rhs )
             {
-                if(cIndx<fSortWindow/2) fQueue.push(cFrame[cIndx]);
-                else cLocalQueue.push(cFrame[cIndx]);
-            }
+                return ((lhs&0xFFFFFFFF) < (rhs&0xFFFFFFFF));
+            });
+            // insert first half into the TS queue
+            auto cElementsToRemove = cLclDQ.size()/2; 
+            fQueue.insert( cLclDQ , cLclDQ.size()/2 );
+            // remove items from the local queue
+            cLclDQ.erase( cLclDQ.begin(), cLclDQ.begin() + cElementsToRemove); 
         }
     }
-    auto cSize=cLocalQueue.size(); 
-    std::vector<Event> cFrame(cSize);
-    for(size_t cIndx=0;cIndx<cSize;cIndx++){ 
-        cFrame[cIndx]=cLocalQueue.front();
-        cLocalQueue.pop();
-    }
-    std::sort( cFrame.begin(), cFrame.end() );
-    for(size_t cIndx=0; cIndx<cFrame.size();cIndx++)
+    // sort based on the time-stamp
+    sort( cLclDQ.begin( ), cLclDQ.end( ), [ ]( const uint64_t& lhs, const uint64_t& rhs )
     {
-        fQueue.push(cFrame[cIndx]);
-    }
+        return ((lhs&0xFFFFFFFF) < (rhs&0xFFFFFFFF));
+    });
+    fQueue.insert( cLclDQ , cLclDQ.size() );
+    // remove items from the local queue
+    cLclDQ.erase( cLclDQ.begin(), cLclDQ.end());
     fReadIsDone=true;
     fReadTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - fReadTime;
     std::cout << "Done reading.." << fReadCounter << " events from input file\n";
@@ -140,24 +130,15 @@ void InputHandler::ProcessData()
 }
 uint32_t InputHandler::print(size_t pSize, std::ostream& pOs)
 {
-    uint32_t cLastTimer=0;
     size_t cNProcessed=0;
     if(pSize==0) return cNProcessed;
     fNCalls++;
     fAverageQueueHandled += (double)pSize;
-
-    for(size_t cIndx=0; cIndx<pSize; cIndx++){ 
-        auto cEvent = fQueue.pop();
-        // pOs << cEvent.fTimestamp << "\t" << cEvent.fEnergy << "\n";
-        uint64_t cWrd = cEvent.encode();//((uint64_t)(cEvent.fEnergy) << 32) | (uint64_t)cEvent.fTimestamp;
-        if(fDebugOut) std::cout << std::bitset<64>(cWrd) << "\n";
-        pOs.write((char*)&cWrd, sizeof(uint64_t));
-        uint32_t cTimeStamp = cEvent.fTimestamp;
-        double cTime = (double)cTimeStamp;
-        if( cTime - (double)cLastTimer < 0 ) std::cout << "!!! --ve \t" << cTimeStamp << "\t" << cLastTimer << "\t" << cIndx << "\n";
-        cLastTimer=cTimeStamp;
-        cNProcessed++;
-    }
+    std::vector<uint64_t> cMyData(0);
+    fQueue.to_vector(cMyData, pSize);
+    fQueue.erase( pSize);
+    pOs.write((char*)&cMyData[0], pSize*sizeof(uint64_t)); 
+    cNProcessed += cMyData.size();
     return cNProcessed;
 }
 void InputHandler::ReadFile()

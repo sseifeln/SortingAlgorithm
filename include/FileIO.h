@@ -57,7 +57,7 @@ class FileIO
     // memeber variables  - threading control
     private :
         // synchronization mutex 
-        std::thread                       fThread;
+        // std::thread                       fThread;
         mutable std::mutex  fMemberMutex;
         std::condition_variable fMyConditionVar;
     
