@@ -52,6 +52,7 @@ void InputHandler::readFile()
     fReadTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     bool cStopCondition = fFileStream.eof();
     std::queue<Event> cLocalQueue; 
+    size_t cFrameCounter=0; 
     while( !cStopCondition )
     {
         uint64_t cWord=0;
@@ -69,8 +70,9 @@ void InputHandler::readFile()
             cLocalQueue.push(cEvent);
             fReadCounter++;
         }
+        cFrameCounter++;
 
-        cStopCondition = ( fReadCounter >= fReadLimit && fReadLimit!=0 ) || fFileStream.eof(); 
+        cStopCondition = ( fReadCounter >= cFrameCounter && fReadLimit!=0 ) || fFileStream.eof(); 
         // every time I've accumulated the corect number of events in the local queue.. 
         // sort and push the first half into the processing queue
         if( cLocalQueue.size() >= fSortWindow )

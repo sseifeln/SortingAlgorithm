@@ -20,11 +20,11 @@ int main(int argc, char* argv[])
     cxxopts::Options cOptions("Datasorter", "Produce time-ordered list of events from a medical imaging device.");
     cOptions.add_options()
         ("d,debug", "Enable debugging") // a bool parameter
-        ("n,number_of_lines", "Number of lines to parse", cxxopts::value<int>()->default_value("0"))
+        ("n,number_of_frames", "Number of frames to parse", cxxopts::value<int>()->default_value("0"))
         ("f,file", "Input file name", cxxopts::value<std::string>()->default_value(cInputFile))
         ("o,output_file", "Output file name", cxxopts::value<std::string>()->default_value(cOutputFile))
-        ("s,sort_window", "Size of sorting window (in events)", cxxopts::value<int>()->default_value("512"))
         ("c,convert_to_tsv", "Convert default output (raw 64 bit words) into a human readable tsv file", cxxopts::value<std::string>()->default_value(cInputFile))
+        ("s,sort_window", "Size of sorting window (in events)", cxxopts::value<int>()->default_value("512"))
         ("h,help", "Print usage")
     ;
 
