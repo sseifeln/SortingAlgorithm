@@ -7,8 +7,11 @@
 #include <bitset>
 #include "FileIO.cc"
 
-InputHandler::InputHandler(const std::string& pInputFileName,  const std::string& pOutputFileName, size_t pReadLimit): fReadTime{0}, fProcessTime{0}, fReadCounter{0}, fProcessedCounter{0}, fFileIsOpened{false}, fReadIsDone{false}
+InputHandler::InputHandler(const std::string& pInputFileName,  const std::string& pOutputFileName, size_t pReadLimit): fReadTime{0}, fProcessTime{0}, fReadCounter{0}, fProcessedCounter{0}, fReadIsDone{false}
 {
+    fDebugOut=false;
+    fNCalls=0;
+    fAverageQueueHandled=0;
     // configure maximum number of lines to read from the file 
     fReadLimit = pReadLimit;
     // configure input stream 
@@ -23,7 +26,6 @@ InputHandler::InputHandler(const std::string& pInputFileName,  const std::string
     fIOHandlerOutput->SetOption('w');
     fIOHandlerOutput->SetFilename(fOutputFileName); 
     fIOHandlerOutput->Open(fOutputStream); 
-    if(fIOHandlerOutput->IsOpen(fOutputStream)) fOutputStream << "Time\tEnergy\n";
 }
 InputHandler::~InputHandler()
 {
@@ -58,9 +60,10 @@ void InputHandler::readFile()
         auto cFrameSize=cWord&0xFFFF;
         for(size_t cNibble=0; cNibble < cFrameSize; cNibble++){ 
             fFileStream.read((char*)&cWord, sizeof(uint64_t)); 
-            Event cEvent; 
-            cEvent.fTimestamp = cWord&0xFFFFFFFF;
-            cEvent.fEnergy = (cWord >> 32 ) & 0xFFFFFFFF; 
+            Event cEvent;
+            cEvent.decode(cWord);
+            // cEvent.fTimestamp = cWord&0xFFFFFFFF;
+            // cEvent.fEnergy = (cWord >> 32 ) & 0xFFFFFFFF; 
             cEvent.fCycle = 0;
             // std::cout << cEvent.fTimestamp << "\n";
             cLocalQueue.push(cEvent);
@@ -138,13 +141,15 @@ uint32_t InputHandler::print(size_t pSize, std::ostream& pOs)
     uint32_t cLastTimer=0;
     size_t cNProcessed=0;
     if(pSize==0) return cNProcessed;
-    
+    fNCalls++;
+    fAverageQueueHandled += (double)pSize;
+
     std::vector<uint64_t> cWords(pSize);
     for(size_t cIndx=0; cIndx<pSize; cIndx++){ 
         auto cEvent = fQueue.pop();
         // pOs << cEvent.fTimestamp << "\t" << cEvent.fEnergy << "\n";
-        uint64_t cWrd = ((uint64_t)(cEvent.fEnergy) << 32) | (uint64_t)cEvent.fTimestamp;
-        // pOs << std::bitset<64>(cWrd) << "\n";
+        uint64_t cWrd = cEvent.encode();//((uint64_t)(cEvent.fEnergy) << 32) | (uint64_t)cEvent.fTimestamp;
+        if(fDebugOut) std::cout << std::bitset<64>(cWrd) << "\n";
         cWords.push_back(cWrd);
         uint32_t cTimeStamp = cEvent.fTimestamp;
         double cTime = (double)cTimeStamp;
@@ -163,7 +168,6 @@ void InputHandler::Wait()
 {
     fThRead.get();//promise 
     fThProcess.get();//promise 
-    std::cout << "Promises received\n";
 }
 void InputHandler::Run()
 {
@@ -176,7 +180,10 @@ void InputHandler::Run()
     cStartTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - cStartTime;
     fOutputStream.close();
 
+    fAverageQueueHandled/=fNCalls;
+
     std::cout << "Sort window set to " << fSortWindow << "\n";
+    std::cout << "Average number of sorted events sent out at a time <" << (uint32_t)fAverageQueueHandled << "> events over " << fNCalls << " writes\n";
     std::cout << "Total running time " << cStartTime*1e-6 << " seconds\n";
     std::cout << "It took " << fReadTime*1e-6 << " s to read " << fReadCounter*1e-6 
         << " MEvents [" << std::scientific << std::setprecision(1) << (float)fReadCounter/fReadTime << " MEvents/s]\n";

@@ -45,8 +45,9 @@ class InputHandler
         // get time to process events
         uint32_t GerProcessingTime(){ return fProcessTime;}
         uint32_t GetNEventsProcessed(){return fProcessedCounter;}
-
-        // 
+        // enable debug printout 
+        void  SetDebugOut(bool pDebug){ fDebugOut=pDebug;}
+        // get average number of events handled at a time 
         void ReadFile(); 
         void ProcessData();
 
@@ -79,7 +80,7 @@ class InputHandler
     private : 
         // queue to hold event data from the file 
         TSQueue<Event>  fQueue;
-    
+
     // member variables  - book keeping 
     private :
         size_t fSortWindow{512};
@@ -92,13 +93,19 @@ class InputHandler
         // number of 64 bit wordsread from the file 
         size_t fReadCounter;
         size_t fProcessedCounter; 
+        // internal variables to estimate 
+        // how much data is stored in memory 
+        double fAverageQueueHandled;
+        size_t fNCalls; 
+
         // file name 
         std::string fInputFileName;
         std::string fOutputFileName;
-        // is file open 
-        bool fFileIsOpened; 
+        // debug output flag 
+        bool  fDebugOut{false};
 
-    // memeber variables  - threading control
+
+    // member variables  - threading control
     private :
         //  futures
         std::future<void> fThRead; 

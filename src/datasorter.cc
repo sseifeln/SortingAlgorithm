@@ -55,6 +55,13 @@ int main(int argc, char* argv[])
     // now have to decide how to structure the rest of this 
     InputHandler cMyInputHandler(cInputFile,cOutputFile, cNlines);
     cMyInputHandler.SetSortWindow(cSortWindow);
+    cMyInputHandler.SetDebugOut( cParsedResults.count("debug")  );
     cMyInputHandler.Run();
+    
+    // simple file converter from raw to csv 
+    if ( cParsedResults.count("convert_to_tsv") ) 
+    {
+
+    }
 
 }
