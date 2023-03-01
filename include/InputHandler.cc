@@ -107,18 +107,12 @@ void InputHandler::process()
     {
         while(fQueue.size() < 100 && !fReadIsDone){}
         auto cSize = fQueue.size();
-        // std::cout << "Have got " << cSize << " items to process\n";
-        // std::stringstream cOutput;
         size_t cNProcessed=print(cSize,fOutputStream);
-        // std::cout << cOutput.str();
         fProcessedCounter+=cNProcessed;
-        // std::cout << "... processed " << cNProcessed << "\n";
     }
     auto cSize=fQueue.size(); 
     std::cout << cSize << " items left to process\n";
-    // std::stringstream cOutput;
     fProcessedCounter += print(cSize,fOutputStream);
-    // std::cout << cOutput.str();
     fProcessTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - fProcessTime;
     std::cout << "Done processing.." << fProcessedCounter << " events from input file\n";
     fProcessing=false;
@@ -154,8 +148,6 @@ void InputHandler::Wait()
 void InputHandler::Run()
 {
     auto cStartTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    
-    // readFile();
     this->ReadFile();
     this->ProcessData();
     this->Wait();
