@@ -31,6 +31,11 @@ class InputHandler
         ~InputHandler();
 
         // setter and getter functions for class members
+        // setter and getter for search window 
+        // defines how many events to look at when performing the search 
+        void SetSortWindow(uint32_t pWindow){ fSortWindow=pWindow;}
+        uint32_t GetSortWindow(){return fSortWindow;}
+
         // set input and output files 
         void SetInputFileName(const std::string& pFileId){ fInputFileName =pFileId; }
         void SetOutputFileName(const std::string& pFileId){ fOutputFileName =pFileId; }
@@ -77,7 +82,7 @@ class InputHandler
     
     // member variables  - book keeping 
     private :
-        size_t fSearchWindow{512};
+        size_t fSortWindow{512};
         size_t fReadLimit{0};
         
         // time to read file

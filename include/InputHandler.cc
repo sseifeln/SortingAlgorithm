@@ -70,18 +70,18 @@ void InputHandler::readFile()
         cStopCondition = ( fReadCounter >= fReadLimit && fReadLimit!=0 ) || fFileStream.eof(); 
         // every time I've accumulated the corect number of events in the local queue.. 
         // sort and push the first half into the processing queue
-        if( cLocalQueue.size() >= fSearchWindow )
+        if( cLocalQueue.size() >= fSortWindow )
         {
             // std::cout << "Accumulated enough events in my local queue..\t" << cLocalQueue.size() << "\n";    
-            std::vector<Event> cFrame(fSearchWindow);
-            for(size_t cIndx=0;cIndx<fSearchWindow;cIndx++){ 
+            std::vector<Event> cFrame(fSortWindow);
+            for(size_t cIndx=0;cIndx<fSortWindow;cIndx++){ 
                 cFrame[cIndx]=cLocalQueue.front();
                 cLocalQueue.pop();
             }
             std::sort( cFrame.begin(), cFrame.end() );
-            for(size_t cIndx=0; cIndx<fSearchWindow;cIndx++)
+            for(size_t cIndx=0; cIndx<fSortWindow;cIndx++)
             {
-                if(cIndx<fSearchWindow/2) fQueue.push(cFrame[cIndx]);
+                if(cIndx<fSortWindow/2) fQueue.push(cFrame[cIndx]);
                 else cLocalQueue.push(cFrame[cIndx]);
             }
         }
@@ -137,19 +137,22 @@ uint32_t InputHandler::print(size_t pSize, std::ostream& pOs)
 {
     uint32_t cLastTimer=0;
     size_t cNProcessed=0;
-    // std::vector<uint64_t> cWords(pSize);
+    if(pSize==0) return cNProcessed;
+    
+    std::vector<uint64_t> cWords(pSize);
     for(size_t cIndx=0; cIndx<pSize; cIndx++){ 
         auto cEvent = fQueue.pop();
-        pOs << cEvent.fTimestamp << "\t" << cEvent.fEnergy << "\n";
-        // uint64_t cWrd = ((uint64_t)(cEvent.fEnergy) << 32) | (uint64_t)cEvent.fTimestamp;
+        // pOs << cEvent.fTimestamp << "\t" << cEvent.fEnergy << "\n";
+        uint64_t cWrd = ((uint64_t)(cEvent.fEnergy) << 32) | (uint64_t)cEvent.fTimestamp;
         // pOs << std::bitset<64>(cWrd) << "\n";
-        // cWords.push_back(cWrd);
+        cWords.push_back(cWrd);
         uint32_t cTimeStamp = cEvent.fTimestamp;
         double cTime = (double)cTimeStamp;
         if( cTime - (double)cLastTimer < 0 ) std::cout << "!!! --ve \t" << cTimeStamp << "\t" << cLastTimer << "\t" << cIndx << "\n";
         cLastTimer=cTimeStamp;
         cNProcessed++;
     }
+    pOs.write((char*)&cWords.at(0), cWords.size() * sizeof(uint64_t));   
     return cNProcessed;
 }
 void InputHandler::ReadFile()
@@ -165,6 +168,7 @@ void InputHandler::Wait()
 void InputHandler::Run()
 {
     auto cStartTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    
     // readFile();
     this->ReadFile();
     this->ProcessData();
@@ -172,6 +176,7 @@ void InputHandler::Run()
     cStartTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count() - cStartTime;
     fOutputStream.close();
 
+    std::cout << "Sort window set to " << fSortWindow << "\n";
     std::cout << "Total running time " << cStartTime*1e-6 << " seconds\n";
     std::cout << "It took " << fReadTime*1e-6 << " s to read " << fReadCounter*1e-6 
         << " MEvents [" << std::scientific << std::setprecision(1) << (float)fReadCounter/fReadTime << " MEvents/s]\n";

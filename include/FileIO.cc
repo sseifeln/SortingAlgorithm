@@ -21,8 +21,8 @@ bool FileIO::Open(std::fstream& pIO)
 
         if(fOption == 'w')
         {
-            pIO.open(fFileId.c_str(), std::fstream::out);
-            
+            pIO.open(fFileId.c_str(), std::fstream::out | std::fstream::binary );
+
         }
         else if(fOption == 'r')
         {

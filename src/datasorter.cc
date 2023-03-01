@@ -14,7 +14,8 @@ int main(int argc, char* argv[])
 {
     int cNlines = 0;
     std::string  cInputFile="data/test_data.dat";
-    std::string  cOutputFile="data/solution.dat";
+    std::string  cOutputFile="data/solution.raw";
+    uint32_t cSortWindow=512;
     // options to command line parser 
     cxxopts::Options cOptions("Datasorter", "Produce time-ordered list of events from a medical imaging device.");
     cOptions.add_options()
@@ -22,6 +23,8 @@ int main(int argc, char* argv[])
         ("n,number_of_lines", "Number of lines to parse", cxxopts::value<int>()->default_value("0"))
         ("f,file", "Input file name", cxxopts::value<std::string>()->default_value(cInputFile))
         ("o,output_file", "Output file name", cxxopts::value<std::string>()->default_value(cOutputFile))
+        ("s,sort_window", "Size of sorting window (in events)", cxxopts::value<int>()->default_value("512"))
+        ("c,convert_to_tsv", "Convert default output (raw 64 bit words) into a human readable tsv file")
         ("h,help", "Print usage")
     ;
 
@@ -41,11 +44,17 @@ int main(int argc, char* argv[])
     {
         cInputFile = cParsedResults["file"].as<std::string>();
     }
+    if ( cParsedResults.count("output_file") ) 
+    {
+        cOutputFile = cParsedResults["output_file"].as<std::string>();
+    }
 
     if( cNlines == 0 ) std::cout << "Parse complete dataset in " << cInputFile << "\n";
     else std::cout << "Parsing " << cNlines << " line(s) from " << cInputFile << "\n";
 
     // now have to decide how to structure the rest of this 
     InputHandler cMyInputHandler(cInputFile,cOutputFile, cNlines);
+    cMyInputHandler.SetSortWindow(cSortWindow);
     cMyInputHandler.Run();
+
 }
